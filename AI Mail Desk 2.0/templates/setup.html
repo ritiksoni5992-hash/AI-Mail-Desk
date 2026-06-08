@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MailDesk AI — Connect your inbox</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="setup-body">
+<div class="setup-wrap">
+  <div class="setup-card">
+    <div class="logo-mark">✉</div>
+    <h1>Connect your inbox</h1>
+    <p class="sub">Enter your email credentials to start managing customer emails with AI-powered replies.</p>
+
+    <div id="setup-error" class="alert alert-error" style="display:none"></div>
+    <div id="setup-success" class="alert alert-success" style="display:none"></div>
+
+    <div class="field">
+      <label>Email address</label>
+      <input type="email" id="s-email" placeholder="support@yourcompany.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>App password / passkey</label>
+      <input type="password" id="s-pass" placeholder="••••••••••••" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>Provider preset</label>
+      <select id="s-provider" onchange="applyPreset(this.value)">
+        <option value="gmail">Gmail</option>
+        <option value="outlook">Outlook / Hotmail</option>
+        <option value="yahoo">Yahoo Mail</option>
+        <option value="zoho">Zoho Mail</option>
+        <option value="custom">Custom IMAP</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>IMAP server</label>
+        <input type="text" id="s-imap-host" value="imap.gmail.com">
+      </div>
+      <div class="field">
+        <label>IMAP port</label>
+        <input type="number" id="s-imap-port" value="993">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>SMTP server</label>
+        <input type="text" id="s-smtp-host" value="smtp.gmail.com">
+      </div>
+      <div class="field">
+        <label>SMTP port</label>
+        <input type="number" id="s-smtp-port" value="587">
+      </div>
+    </div>
+
+    <button class="btn-primary" id="connect-btn" onclick="connectAccount()">
+      Connect &amp; Start Managing →
+    </button>
+    <p class="setup-note">🔒 Credentials are stored locally and never shared.</p>
+  </div>
+</div>
+
+<script>
+const PRESETS = {
+  gmail:   {imap:'imap.gmail.com',  imap_port:993, smtp:'smtp.gmail.com',  smtp_port:587},
+  outlook: {imap:'outlook.office365.com', imap_port:993, smtp:'smtp.office365.com', smtp_port:587},
+  yahoo:   {imap:'imap.mail.yahoo.com', imap_port:993, smtp:'smtp.mail.yahoo.com', smtp_port:465},
+  zoho:    {imap:'imap.zoho.com',   imap_port:993, smtp:'smtp.zoho.com',   smtp_port:587},
+  custom:  {imap:'', imap_port:993, smtp:'', smtp_port:587},
+};
+
+function applyPreset(p) {
+  const pr = PRESETS[p] || PRESETS.gmail;
+  document.getElementById('s-imap-host').value = pr.imap;
+  document.getElementById('s-imap-port').value = pr.imap_port;
+  document.getElementById('s-smtp-host').value = pr.smtp;
+  document.getElementById('s-smtp-port').value = pr.smtp_port;
+}
+
+async function connectAccount() {
+  const btn = document.getElementById('connect-btn');
+  const errEl = document.getElementById('setup-error');
+  const okEl  = document.getElementById('setup-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  const payload = {
+    email:     document.getElementById('s-email').value.trim(),
+    password:  document.getElementById('s-pass').value.trim(),
+    provider:  document.getElementById('s-provider').value,
+    imap_host: document.getElementById('s-imap-host').value.trim(),
+    imap_port: parseInt(document.getElementById('s-imap-port').value),
+    smtp_host: document.getElementById('s-smtp-host').value.trim(),
+    smtp_port: parseInt(document.getElementById('s-smtp-port').value),
+  };
+
+  if (!payload.email || !payload.password) {
+    errEl.textContent = 'Email and password are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.innerHTML = '<span class="spin"></span> Connecting…';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/auth/connect', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      okEl.textContent = 'Connected! Redirecting…';
+      okEl.style.display = 'block';
+      setTimeout(() => window.location.href = data.redirect, 800);
+    } else {
+      errEl.textContent = data.error || 'Connection failed.';
+      errEl.style.display = 'block';
+      btn.innerHTML = 'Connect &amp; Start Managing →';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    errEl.textContent = 'Network error. Is the server running?';
+    errEl.style.display = 'block';
+    btn.innerHTML = 'Connect &amp; Start Managing →';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

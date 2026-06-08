@@ -1,0 +1,7 @@
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-login==0.6.3
+apscheduler==3.10.4
+werkzeug==3.0.3
+# No extra SDK needed for Gemini — uses urllib (stdlib)
+# Optional: pip install Pillow  (for image preprocessing if needed)
